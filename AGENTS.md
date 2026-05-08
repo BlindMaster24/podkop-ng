@@ -7,7 +7,8 @@ This file is the operating manual for AI coding agents (Devin, Claude Code, Curs
 - **Owner / fork status:** `BlindMaster24/podkop-ng` is **not a GitHub fork**. It is an independent personal continuation of `itdoginfo/podkop`, mirrored from upstream and developed separately. Do not assume any upstream-PR workflow.
 - **Upstream:** `https://github.com/itdoginfo/podkop` (read-only). Upstream maintainer accepts PRs only after coordination in their Telegram chat; we do not target upstream with PRs from this repo.
 - **License:** GPL-2.0-or-later. All code added here remains GPL-2.0-or-later. Preserve the original `LICENSE` file and any per-file copyright headers when modifying upstream files.
-- **Scope of changes in this fork:** primary focus is **accessibility (a11y)** of the LuCI/web frontend (screen-reader compatibility, keyboard navigation, ARIA, contrast, focus management, simplified themes). Backend changes are allowed but must not break upstream sync compatibility unless deliberate.
+- **Scope of changes in this fork:** primary focus is **accessibility (a11y)** of the LuCI/web frontend (screen-reader compatibility, keyboard navigation, ARIA, contrast, focus management, simplified themes). Other changes (backend, performance, UX) are also welcome — there is no fixed scope beyond a11y emphasis.
+- **Upstream relationship:** treat this as a **separate project**, not as a maintained downstream. There is no obligation to keep upstream-sync compatibility; do not constrain new work for the sake of easy upstream merges. Occasional cherry-picks from `itdoginfo/podkop` may still happen; **the AI agent — not the human owner — is the one expected to perform them when the owner asks**, using the workflow in §4. AGENTS.md keeps those commands ready for that reason.
 
 ## 2. What this software does
 
@@ -69,7 +70,9 @@ Podkop is an OpenWrt package that provides domain-based traffic routing through 
 └── .github/                 CODEOWNERS, PR template, CI workflows
 ```
 
-## 4. Upstream sync workflow
+## 4. Upstream sync workflow (run by the AI agent on demand)
+
+This repo is developed as a separate project; nothing here syncs to upstream automatically or on a schedule. **This section is the procedure the AI agent runs when the owner asks for one or more upstream commits to be pulled in.** The owner is not expected to run these commands themselves.
 
 Upstream is configured as a remote in fresh local clones:
 
@@ -78,17 +81,17 @@ git remote add upstream https://github.com/itdoginfo/podkop.git
 git remote set-url --push upstream DISABLED
 ```
 
-To pull upstream changes:
+To pull upstream changes when asked:
 
 ```sh
 git fetch upstream
 git log upstream/main --oneline ^main      # see what is new
-git cherry-pick <sha>...                   # selective
-# or
-git merge --no-ff upstream/main            # bulk; expect conflicts in fe-app
+git cherry-pick <sha>...                   # selective (default mode)
+# or, only if the owner explicitly asks for a bulk merge:
+git merge --no-ff upstream/main
 ```
 
-When merging upstream tags, prefer cherry-picking specific commits over full merges if the local branch has diverged on a11y work. Never push to `upstream`.
+Default to selective cherry-picks of the specific commits the owner names. Use `merge --no-ff` only on explicit owner request. When resolving conflicts, accessibility-related work in this repo always wins over conflicting upstream changes. Never push to `upstream`.
 
 ## 5. Build, test, lint
 
@@ -183,7 +186,7 @@ These conventions apply to **every** change made by an AI agent in this repo. Hu
 5. **PRs and reviews.**
    - Open PRs against `main`. Squash-merge unless the branch is itself a curated history (e.g. an upstream sync).
    - PR title follows the same Conventional Commits format as commits.
-   - PR description must include: motivation, summary of changes, test evidence (output of `yarn ci` or screenshots / screen-reader recordings for a11y work), upstream impact (does this conflict with future syncs?).
+   - PR description must include: motivation, summary of changes, test evidence (output of `yarn ci` or screenshots / screen-reader recordings for a11y work).
 
 6. **Frontend specifics (a11y focus).**
    - Every interactive element must have an accessible name (visible label, `aria-label`, or `aria-labelledby`).
@@ -226,7 +229,7 @@ Concrete protocol when an agent is asked to implement a change:
 6. **Commit.** One Conventional Commit per logical change. English, imperative.
 7. **PR.** Open against `main` with the structured description from §6.5.
 8. **Wait for CI.** Do not declare done until CI is green. If CI fails, address it in additional commits (not amends).
-9. **Sync.** When upstream changes land, open a `sync/upstream-<date>` branch, cherry-pick or merge, run the full `yarn ci` plus shellcheck, resolve conflicts (a11y-related conflicts always favor preserving accessibility work), open PR.
+9. **Sync (only when the owner asks).** When the owner names one or more commits from `itdoginfo/podkop` to pull in, open a `sync/upstream-<date>` branch, cherry-pick those commits (or `merge --no-ff` only on explicit owner request), run the full `yarn ci` plus shellcheck, resolve conflicts (a11y-related conflicts always favor preserving accessibility work), open PR. Do not initiate syncs on your own.
 
 ## 8. Things to escalate
 
