@@ -574,8 +574,7 @@ async function getConfigSections() {
 async function callBaseMethod(method, args = [], command = "/usr/bin/podkop") {
   const response = await executeShellCommand({
     command,
-    args: [method, ...args],
-    timeout: 15e3
+    args: [method, ...args]
   });
   if (response.stdout) {
     try {
@@ -942,7 +941,7 @@ var BOOTSTRAP_DNS_SERVER_OPTIONS = {
 var DIAGNOSTICS_UPDATE_INTERVAL = 1e4;
 var CACHE_TIMEOUT = DIAGNOSTICS_UPDATE_INTERVAL - 1e3;
 var ERROR_POLL_INTERVAL = 1e4;
-var COMMAND_TIMEOUT = 1e4;
+var COMMAND_TIMEOUT = 6e4;
 var FETCH_TIMEOUT = 1e4;
 var BUTTON_FEEDBACK_TIMEOUT = 1e3;
 var DIAGNOSTICS_INITIAL_DELAY = 100;
@@ -1461,6 +1460,7 @@ var PodkopLogWatcher = class _PodkopLogWatcher {
     this.lastLines = /* @__PURE__ */ new Set();
     this.running = false;
     this.paused = false;
+    this.inFlight = false;
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", () => {
         if (document.hidden) this.pause();
@@ -1492,6 +1492,14 @@ var PodkopLogWatcher = class _PodkopLogWatcher {
       logger.debug("[PodkopLogWatcher]", "skipped check \u2014 tab not visible");
       return;
     }
+    if (this.inFlight) {
+      logger.debug(
+        "[PodkopLogWatcher]",
+        "skipped check \u2014 previous fetch still pending"
+      );
+      return;
+    }
+    this.inFlight = true;
     try {
       const raw = await this.fetcher();
       const lines = raw.split("\n").filter(Boolean);
@@ -1507,6 +1515,8 @@ var PodkopLogWatcher = class _PodkopLogWatcher {
       }
     } catch (err) {
       logger.error("[PodkopLogWatcher]", "failed to read logs:", err);
+    } finally {
+      this.inFlight = false;
     }
   }
   start() {
