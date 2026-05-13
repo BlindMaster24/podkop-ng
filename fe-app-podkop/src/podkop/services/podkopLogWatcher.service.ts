@@ -16,6 +16,7 @@ export class PodkopLogWatcher {
   private timer?: ReturnType<typeof setInterval>;
   private running = false;
   private paused = false;
+  private inFlight = false;
 
   private constructor() {
     if (typeof document !== 'undefined') {
@@ -54,6 +55,15 @@ export class PodkopLogWatcher {
       return;
     }
 
+    if (this.inFlight) {
+      logger.debug(
+        '[PodkopLogWatcher]',
+        'skipped check — previous fetch still pending',
+      );
+      return;
+    }
+
+    this.inFlight = true;
     try {
       const raw = await this.fetcher();
       const lines = raw.split('\n').filter(Boolean);
@@ -71,6 +81,8 @@ export class PodkopLogWatcher {
       }
     } catch (err) {
       logger.error('[PodkopLogWatcher]', 'failed to read logs:', err);
+    } finally {
+      this.inFlight = false;
     }
   }
 
